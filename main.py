@@ -1,3 +1,4 @@
+#Antony Kwok 108497731
 import sys
 import tpg
 
@@ -24,28 +25,17 @@ class Node(object):
 
 class List(Node):
     def __init__(self, value):
-        print("List")
-        if isinstance(value, list):
-            self.value = value
-        elif str(value)[0] == '"':
-            self.value = value[1:len(value) - 1]
-        else:
-            self.value = int(value)
+        self.value = value
 
     def evaluate(self):
-        if isinstance(self.value, list):
-            r1 = []
-            for k in self.value:
-                r1.append(k.evaluate())
-            return r1
-        else:
-            return self.value
+        list = []
+        for i in self.value:
+            list.append(i.evaluate())
+        return list
 
 class Str(Node):
     def __init__(self, value):
-        if str(value)[0] == '"':
-            self.value = value[1:len(value) - 1]
-            print("Str value is " + self.value)
+        self.value = value[1:len(value) - 1]
 
     def evaluate(self):
         return self.value
@@ -59,7 +49,7 @@ class operation(Node):
     def evaluate(self):
         left = self.left.evaluate()
         right = self.right.evaluate()
-
+        print("left is ", left, "op is ", self.op, "rite is ", right)
         if self.op == '[':
             if not (isinstance(right, int)):
                 raise SemanticError
@@ -70,23 +60,22 @@ class operation(Node):
             except IndexError:
                 raise SemanticError
         elif self.op == "*":
-            if not (isinstance(left, int) | isinstance(left, float) | isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
                 raise SemanticError
-            try:
-                return left * right
-            except:
-                raise SemanticError
+            return left * right
 
         elif self.op == "/":
-            if (not(isinstance(left, int) | isinstance(left, float) | isinstance(right, int) | isinstance(right, float))) | right == 0:
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)) or right == 0:
                 raise SemanticError
-            try:
-                return left / right
-            except:
-                raise SemanticError
+            return left / right
+
         elif self.op == "%":
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+                raise SemanticError
             return left % right
         elif self.op == "**":
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+                raise SemanticError
             return pow(left, right)
         elif self.op == "//":
             return left // right
@@ -98,45 +87,60 @@ class operation(Node):
                 raise SemanticError
             return left + right
         elif self.op == "-":
-            if not (isinstance(left, int) | isinstance(left, float) | isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
                 raise SemanticError
             return left - right
         elif self.op == "in":
-            try:
-                return left in right
-            except:
-                raise SemanticError
+            return left in right
         elif self.op == "<":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left < right
+            if (left < right) == True:
+                return 1
+            else:
+                return 0
         elif self.op == "<=":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left <= right
+            if (left <= right) == True:
+                return 1
+            else:
+                return 0
         elif self.op == "==":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left == right
+            if (left == right) == True:
+                return 1
+            else:
+                return 0
         elif self.op == "<>":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left > right  # !!!fix
+            if (left != right) == True:
+                return 1
+            else:
+                return 0 # !!!fix
         elif self.op == ">":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left > right
+            if (left > right) == True:
+                return 1
+            else:
+                return 0
         elif self.op == ">=":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
-            return left >= right
+            if (left >= right) == True:
+                return 1
+            else:
+                return 0
         elif self.op == "not":
             if not(isinstance(right, int)):
                 raise SemanticError
             if right == 0:
-                return False
+                return 1
             else:
-                return True
+                return 0
         elif self.op == "and":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
@@ -157,7 +161,6 @@ class IntLiteral(Node):
     """
 
     def __init__(self, value):
-        print("intlit is ",value)
         self.value = int(value)
 
     def evaluate(self):
@@ -170,7 +173,6 @@ class RealLiteral(Node):
     """
 
     def __init__(self, value):
-        print("real")
         self.value = float(value)
 
     def evaluate(self):
@@ -196,19 +198,19 @@ class Parser(tpg.Parser):
     comparison/a -> boolIN/a ( ("<>"/op |"<="/op | "<"/op | "=="/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
     boolIN/a -> xor/a ( "in"/op xor/b                              $a = operation(a, op, b) $ )* ;
     xor/a -> addsub/a ( "xor"/op addsub/b                          $a = operation(a, op, b) $ )* ;
-    addsub/a -> floor/a ( ("\+"/op | "\-"/op) floor/b            $a = operation(a, op, b) $ )* ;
-    floor/a -> pow/a ( ("//"/op) pow/b                     $a = operation(a, op, b) $ )* ;
-    pow/a -> mod/a ( ("\*\*"/op) mod/b                     $a = operation(a, op, b) $ )* ;
-    mod/a -> muldiv/a ( ("%"/op) muldiv/b                     $a = operation(a, op, b) $ )* ;
-    muldiv/a -> listIndex/a ( ("\*"/op | "/"/op) listIndex/b              $a = operation(a, op, b) $ )* ;
-    listIndex/a -> parens/a ( "\[" expression/b "\]"         $a = operation(a, '[', b) $ )* ;
+    addsub/a -> floor/a ( ("\+"/op | "\-"/op) floor/b              $a = operation(a, op, b) $ )* ;
+    floor/a -> pow/a ( ("//"/op) pow/b                             $a = operation(a, op, b) $ )* ;
+    pow/a -> mod/a ( ("\*\*"/op) mod/b                             $a = operation(a, op, b) $ )* ;
+    mod/a -> muldiv/a ( ("%"/op) muldiv/b                          $a = operation(a, op, b) $ )* ;
+    muldiv/a -> index/a ( ("\*"/op | "/"/op) index/b       $a = operation(a, op, b) $ )* ;
+    index/a -> parens/a ( "\[" expression/b "\]"               $a = operation(a, '[', b) $ )* ;
     parens/a -> "\(" expression/a "\)" | literal/a;
     literal/a -> list/a | real/a | int/a | str/a;
     list/a -> "\["          $a = List([]) $
        expression/b          $a.value.append(b) $
        ( "," expression/b    $a.value.append(b) $)*
        "\]"
-        | "\[" "\]"          $a = Value([]) $;
+        | "\[" "\]"          $a = List([]) $;
     """
 
 
