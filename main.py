@@ -162,15 +162,17 @@ class assignment(Node):
     def __init__(self, left, op, right):
         self.left = left
         self.right = right
+        print(left)
+        print(right)
     def evaluate(self):
         left = self.left.evaluate()
         right = self.right.evaluate()
         if isinstance(left, Variable):
-            if isinstance(right, int) or isinstance(right, float) or isinstance(right, str):
-                dict[left] = right
-        #else map.replace(left, right)
-        return right
-
+            dict[left] = right
+        elif isinstance(left, arrayIndex):
+            left[self.right.index] = right
+            print(left[self.right.index])
+        print(type(left))
 class IntLiteral(Node):
     """
     A node representing integer literals.
@@ -208,14 +210,16 @@ class Variable(Node):
             raise SemanticError
 
 class arrayIndex(Node):
-    def __init__(self, value):
-        try:
-            self.value = dict[value]
-        except:
-            self.value = None
+    """
+    A node representing an array[index] call for assignment
+    """
+    def __init__(self, array, index):
+        self.array = array
+        self.index = index
 
     def evaluate(self):
-        return self.value
+        return self.array
+
 # This is the TPG Parser that is responsible for turning our language into
 # an abstract syntax tree.
 class Parser(tpg.Parser):
@@ -230,7 +234,7 @@ class Parser(tpg.Parser):
     START/a -> left/a "="/op expression/b                      $a = assignment(a, op, b) $ | expression/a;
 
     left/a -> var/a | arrayIndex/a;
-    arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(b) $ ) ;
+    arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
     expression/a -> boolOR/a;
     boolOR/a -> boolAND/a ( "or"/op boolAND/b                      $a = operation(a, op, b) $ )* ;
     boolAND/a -> boolNOT/a ( "and"/op boolNOT/b                    $a = operation(a, op, b) $ )* ;
