@@ -2,13 +2,12 @@
 import sys
 import tpg
 
-
+dict = {}
 class SemanticError(Exception):
     """
     This is the class of the exception that is raised when a semantic error
     occurs.
     """
-
 
 # These are the nodes of our abstract syntax tree.
 class Node(object):
@@ -23,7 +22,7 @@ class Node(object):
         raise Exception("Not implemented.")
 
 
-class List(Node):
+class Array(Node):
     def __init__(self, value):
         self.value = value
 
@@ -49,7 +48,6 @@ class operation(Node):
     def evaluate(self):
         left = self.left.evaluate()
         right = self.right.evaluate()
-        print("left is ", left, "op is ", self.op, "rite is ", right)
         if self.op == '[':
             if not (isinstance(right, int)):
                 raise SemanticError
@@ -91,7 +89,13 @@ class operation(Node):
                 raise SemanticError
             return left - right
         elif self.op == "in":
-            return left in right
+            try:
+                if (left in right) == True:
+                    return 1
+                else:
+                    return 0
+            except:
+                raise SemanticError
         elif self.op == "<":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
@@ -154,6 +158,18 @@ class operation(Node):
                 return 0
             return 1
 
+class assignment(Node):
+    def __init__(self, left, op, right):
+        self.left = left
+        self.right = right
+    def evaluate(self):
+        left = self.left.evaluate()
+        right = self.right.evaluate()
+        if isinstance(left, Variable):
+            if isinstance(right, int) or isinstance(right, float) or isinstance(right, str):
+                dict[left] = right
+        #else map.replace(left, right)
+        return right
 
 class IntLiteral(Node):
     """
@@ -166,7 +182,6 @@ class IntLiteral(Node):
     def evaluate(self):
         return self.value
 
-
 class RealLiteral(Node):
     """
     A node representing real literals.
@@ -174,23 +189,48 @@ class RealLiteral(Node):
 
     def __init__(self, value):
         self.value = float(value)
-
+        print("real is ", value)
     def evaluate(self):
         return self.value
 
+class Variable(Node):
+    """
+    A node representing integer literals.
+    """
 
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self):
+        try:
+            return dict[self.value]
+        except:
+            raise SemanticError
+
+class arrayIndex(Node):
+    def __init__(self, value):
+        try:
+            self.value = dict[value]
+        except:
+            self.value = None
+
+    def evaluate(self):
+        return self.value
 # This is the TPG Parser that is responsible for turning our language into
 # an abstract syntax tree.
 class Parser(tpg.Parser):
     """
 
+    token var "[A-Za-z][A-Za-z0-9_]*" Variable;
     token real "\d*\.\d*|\.\d*" RealLiteral;
     token int "\d+" IntLiteral;
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> expression/a;
+    START/a -> left/a "="/op expression/b                      $a = assignment(a, op, b) $ | expression/a;
 
+    left/a -> var/a | arrayIndex/a;
+    arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(b) $ ) ;
     expression/a -> boolOR/a;
     boolOR/a -> boolAND/a ( "or"/op boolAND/b                      $a = operation(a, op, b) $ )* ;
     boolAND/a -> boolNOT/a ( "and"/op boolNOT/b                    $a = operation(a, op, b) $ )* ;
@@ -205,12 +245,12 @@ class Parser(tpg.Parser):
     muldiv/a -> index/a ( ("\*"/op | "/"/op) index/b       $a = operation(a, op, b) $ )* ;
     index/a -> parens/a ( "\[" expression/b "\]"               $a = operation(a, '[', b) $ )* ;
     parens/a -> "\(" expression/a "\)" | literal/a;
-    literal/a -> list/a | real/a | int/a | str/a;
-    list/a -> "\["          $a = List([]) $
+    literal/a -> array/a | real/a | int/a | str/a | var/a;
+    array/a -> "\["          $a = Array([]) $
        expression/b          $a.value.append(b) $
        ( "," expression/b    $a.value.append(b) $)*
        "\]"
-        | "\[" "\]"          $a = List([]) $;
+        | "\[" "\]"          $a = Array([]) $;
     """
 
 
