@@ -165,14 +165,13 @@ class assignment(Node):
         print(left)
         print(right)
     def evaluate(self):
-        left = self.left.evaluate()
         right = self.right.evaluate()
-        if isinstance(left, Variable):
-            dict[left] = right
-        elif isinstance(left, arrayIndex):
-            left[self.right.index] = right
-            print(left[self.right.index])
-        print(type(left))
+        if isinstance(self.left, Variable):
+            dict[self.left.value] = right
+        elif isinstance(self.left, arrayIndex):
+            self.left.array[self.right.index] = right
+            print("assignment arrayIndex " + self.left[self.right.index])
+        print(type(self.left.array))
 class IntLiteral(Node):
     """
     A node representing integer literals.
@@ -220,6 +219,33 @@ class arrayIndex(Node):
     def evaluate(self):
         return self.array
 
+class print(Node):
+
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self):
+        print(self.value)
+
+class whileLoop(Node):
+    """
+    A node representing an array[index] call for assignment
+    """
+    def __init__(self, condition, statements):
+        self.condition = condition
+        self.statements = statements
+
+    def evaluate(self):
+        pass
+
+class executeBlock(Node):
+
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self):
+        return self.value
+
 # This is the TPG Parser that is responsible for turning our language into
 # an abstract syntax tree.
 class Parser(tpg.Parser):
@@ -231,8 +257,10 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> left/a "="/op expression/b                      $a = assignment(a, op, b) $ | expression/a;
+    START/a -> (left/a "="/op expression/b "\;"                     $a = assignment(a, op, b) $)
+        | "print" "\(" expression/a "\)" "\;"                      $a = print(a) $;
 
+    statement/a -> expression/a ";";
     left/a -> var/a | arrayIndex/a;
     arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
     expression/a -> boolOR/a;
@@ -255,9 +283,11 @@ class Parser(tpg.Parser):
        ( "," expression/b    $a.value.append(b) $)*
        "\]"
         | "\[" "\]"          $a = Array([]) $;
+
     """
 
-
+#    while/a -> "while" "\(" expression/a "\)" block/b               $a = whileLoop(a, b)$;
+#    block/a -> "\{" (expression/a)* "\}"                             $a = executeBlock(a)$;
 # Make an instance of the parser. This acts like a function.
 parse = Parser()
 
@@ -269,7 +299,6 @@ try:
     f = open(sys.argv[1], "r")
 except(IndexError, IOError):
     f = open("input1.txt", "r")
-
 # For each line in f
 for l in f:
     try:
