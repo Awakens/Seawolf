@@ -162,14 +162,14 @@ class assignment(Node):
     def __init__(self, left, op, right):
         self.left = left
         self.right = right
+        self.op = op
+
+    def evaluate(self):
         if isinstance(self.left, Variable):
             dict[self.left.value] = self.right.evaluate()
         elif isinstance(self.left, arrayIndex):
             (self.left.evaluate())[self.left.index] = self.right.evaluate()
-        print("assignment " , self.left.value, op, self.right.evaluate())
-
-    def evaluate(self):
-        pass
+        print("assignment " , self.left.value, self.op, self.right.evaluate())
 
 class Variable(Node):
     """
@@ -219,14 +219,30 @@ class RealLiteral(Node):
         return self.value
 
 class printer(Node):
-    """
-    A node representing real literals.
-    """
-
     def __init__(self, value):
         self.value = value
     def evaluate(self):
         print(str(self.value.evaluate()))
+
+class block(Node):
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self):
+        list = []
+        for i in self.value:
+            list.append(i.evaluate())
+        pass
+
+class execute(Node):
+    """
+    Does evaluate to execute
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self):
+        self.value.evaluate()
 
 # This is the TPG Parser that is responsible for turning our language into
 # an abstract syntax tree.
@@ -239,8 +255,8 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> (loop/a)+;
-    loop/a-> statement/a | block/a;
+    START/a -> ((loop/a)                                             $a = execute(a)$)+;
+    loop/a-> statement/a | block/a | conditional/a;
     statement/a -> assign/a | print/a;
     assign/a -> left/a "="/op expression/b "\;"                      $a = assignment(a, op, b) $;
     print/a -> ("print" "\(" expression/a "\)" "\;"   $a = printer(a)$);
@@ -267,8 +283,13 @@ class Parser(tpg.Parser):
        ( "," expression/b    $a.value.append(b) $)*
        "\]"
         | "\[" "\]"          $a = Array([]) $;
+    block/a -> "\{"          $a = block([]) $
+       ( statement/b    $a.value.append(b) $)*
+       "\}"
+        | "\{" "\}"          $a = block([]) $;
+    conditional/a -> ifLoop/a | whileLoop/a;
     whileLoop/a -> "while";
-    block/a -> "\{" (statement/a)* "\}";
+    ifLoop/a -> "if";
     """
 
 
