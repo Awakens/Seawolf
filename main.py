@@ -162,38 +162,14 @@ class assignment(Node):
     def __init__(self, left, op, right):
         self.left = left
         self.right = right
-        print(left)
-        print(right)
-    def evaluate(self):
-        left = self.left.evaluate()
-        right = self.right.evaluate()
-        if isinstance(left, Variable):
-            dict[left] = right
-        elif isinstance(left, arrayIndex):
-            left[self.right.index] = right
-            print(left[self.right.index])
-        print(type(left))
-class IntLiteral(Node):
-    """
-    A node representing integer literals.
-    """
-
-    def __init__(self, value):
-        self.value = int(value)
+        if isinstance(self.left, Variable):
+            dict[self.left.value] = self.right.evaluate()
+        elif isinstance(self.left, arrayIndex):
+            (self.left.evaluate())[self.left.index] = self.right.evaluate()
+        print("assignment " , self.left.value, op, self.right.evaluate())
 
     def evaluate(self):
-        return self.value
-
-class RealLiteral(Node):
-    """
-    A node representing real literals.
-    """
-
-    def __init__(self, value):
-        self.value = float(value)
-        print("real is ", value)
-    def evaluate(self):
-        return self.value
+        pass
 
 class Variable(Node):
     """
@@ -220,6 +196,38 @@ class arrayIndex(Node):
     def evaluate(self):
         return self.array
 
+class IntLiteral(Node):
+    """
+    A node representing integer literals.
+    """
+
+    def __init__(self, value):
+        self.value = int(value)
+
+    def evaluate(self):
+        return self.value
+
+class RealLiteral(Node):
+    """
+    A node representing real literals.
+    """
+
+    def __init__(self, value):
+        self.value = float(value)
+        print("real is ", value)
+    def evaluate(self):
+        return self.value
+
+class printer(Node):
+    """
+    A node representing real literals.
+    """
+
+    def __init__(self, value):
+        self.value = value
+    def evaluate(self):
+        print(str(self.value.evaluate()))
+
 # This is the TPG Parser that is responsible for turning our language into
 # an abstract syntax tree.
 class Parser(tpg.Parser):
@@ -231,9 +239,13 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> left/a "="/op expression/b                      $a = assignment(a, op, b) $ | expression/a;
+    START/a -> (loop/a)+;
+    loop/a-> statement/a | block/a;
+    statement/a -> assign/a | print/a;
+    assign/a -> left/a "="/op expression/b "\;"                      $a = assignment(a, op, b) $;
+    print/a -> ("print" "\(" expression/a "\)" "\;"   $a = printer(a)$);
 
-    left/a -> var/a | arrayIndex/a;
+    left/a -> arrayIndex/a | var/a;
     arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
     expression/a -> boolOR/a;
     boolOR/a -> boolAND/a ( "or"/op boolAND/b                      $a = operation(a, op, b) $ )* ;
@@ -255,6 +267,8 @@ class Parser(tpg.Parser):
        ( "," expression/b    $a.value.append(b) $)*
        "\]"
         | "\[" "\]"          $a = Array([]) $;
+    whileLoop/a -> "while";
+    block/a -> "\{" (statement/a)* "\}";
     """
 
 
@@ -270,29 +284,28 @@ try:
 except(IndexError, IOError):
     f = open("input1.txt", "r")
 
-# For each line in f
-for l in f:
-    try:
-        # Try to parse the expression.
-        node = parse(l)
+l = f.read()
+try:
+    # Try to parse the expression.
+    node = parse(l)
 
-        # Try to get a result.
-        result = node.evaluate()
+    # Try to get a result.
+    result = node.evaluate()
 
-        # Print the representation of the result.
-        print(repr(result))
+    # Print the representation of the result.
+    print(repr(result))
 
-    # If an exception is thrown, print the appropriate error.
-    except tpg.Error:
-        print("SYNTAX ERROR")
-        # Uncomment the next line to re-raise the syntax error,
-        # displaying where it occurs. Comment it for submission.
-        # raise
+# If an exception is thrown, print the appropriate error.
+except tpg.Error:
+    print("SYNTAX ERROR")
+    # Uncomment the next line to re-raise the syntax error,
+    # displaying where it occurs. Comment it for submission.
+    # raise
 
-    except SemanticError:
-        print("SEMANTIC ERROR")
-        # Uncomment the next line to re-raise the semantic error,
-        # displaying where it occurs. Comment it for submission.
-        # raise
+except SemanticError:
+    print("SEMANTIC ERROR")
+    # Uncomment the next line to re-raise the semantic error,
+    # displaying where it occurs. Comment it for submission.
+    # raise
 
 f.close()
