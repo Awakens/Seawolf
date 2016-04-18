@@ -145,13 +145,13 @@ class operation(Node):
                 return 1
             else:
                 return 0
-        elif self.op == "and":
+        elif self.op == "and" or self.op == "&" or self.op == "&&":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
             if left == 0 | right == 0:
                 return 0
             return 1
-        elif self.op == "or":
+        elif self.op == "or" or self.op == "|" or self.op == "||":
             if not(isinstance(left, int) & isinstance(right, int)):
                 raise SemanticError
             if (left == 0 & right == 0):
@@ -286,10 +286,10 @@ class Parser(tpg.Parser):
     left/a -> arrayIndex/a | var/a;
     arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
     expression/a -> boolOR/a;
-    boolOR/a -> boolAND/a ( "or"/op boolAND/b                      $a = operation(a, op, b) $ )* ;
-    boolAND/a -> boolNOT/a ( "and"/op boolNOT/b                    $a = operation(a, op, b) $ )* ;
+    boolOR/a -> boolAND/a ( ("or"/op) boolAND/b     $a = operation(a, op, b) $ )* ;
+    boolAND/a -> boolNOT/a ( ("and"/op | "&&"/op | "&"/op) boolNOT/b   $a = operation(a, op, b) $ )* ;
     boolNOT/a -> comparison/a | "not"/op expression/b              $a = operation(b, op, b) $ ;
-    comparison/a -> boolIN/a ( ("<>"/op |"<="/op | "<"/op | "=="/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
+    comparison/a -> boolIN/a ( ("\=\="/op | "<>"/op |"<="/op | "<"/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
     boolIN/a -> xor/a ( "in"/op xor/b                              $a = operation(a, op, b) $ )* ;
     xor/a -> addsub/a ( "xor"/op addsub/b                          $a = operation(a, op, b) $ )* ;
     addsub/a -> floor/a ( ("\+"/op | "\-"/op) floor/b              $a = operation(a, op, b) $ )* ;
