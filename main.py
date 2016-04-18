@@ -58,34 +58,34 @@ class operation(Node):
             except IndexError:
                 raise SemanticError
         elif self.op == "*":
-            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) or isinstance(right, float)):
                 raise SemanticError
             return left * right
 
         elif self.op == "/":
-            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)) or right == 0:
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) or isinstance(right, float)) or right == 0:
                 raise SemanticError
             return left / right
 
         elif self.op == "%":
-            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) or isinstance(right, float)):
                 raise SemanticError
             return left % right
         elif self.op == "**":
-            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) or isinstance(right, float)):
                 raise SemanticError
             return pow(left, right)
         elif self.op == "//":
             return left // right
         elif self.op == "+":
-            if not ((isinstance(left, int) & isinstance(right, int)) | (
-                        isinstance(left, float) & isinstance(right, float)) |
-                        (isinstance(left, str) & isinstance(right, str)) | (
-                        isinstance(left, list) & isinstance(right, list))):
+            if not ((isinstance(left, int) and isinstance(right, int)) or (
+                        isinstance(left, float) and isinstance(right, float)) or
+                        (isinstance(left, str) and isinstance(right, str)) or (
+                        isinstance(left, list) and isinstance(right, list))):
                 raise SemanticError
             return left + right
         elif self.op == "-":
-            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) | isinstance(right, float)):
+            if not (isinstance(left, int) or isinstance(left, float)) or not (isinstance(right, int) or isinstance(right, float)):
                 raise SemanticError
             return left - right
         elif self.op == "in":
@@ -97,42 +97,42 @@ class operation(Node):
             except:
                 raise SemanticError
         elif self.op == "<":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left < right) == True:
                 return 1
             else:
                 return 0
         elif self.op == "<=":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left <= right) == True:
                 return 1
             else:
                 return 0
         elif self.op == "==":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left == right) == True:
                 return 1
             else:
                 return 0
         elif self.op == "<>":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left != right) == True:
                 return 1
             else:
                 return 0 # !!!fix
         elif self.op == ">":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left > right) == True:
                 return 1
             else:
                 return 0
         elif self.op == ">=":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
             if (left >= right) == True:
                 return 1
@@ -146,15 +146,15 @@ class operation(Node):
             else:
                 return 0
         elif self.op == "and" or self.op == "&" or self.op == "&&":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
-            if left == 0 | right == 0:
+            if left == 0 or right == 0:
                 return 0
             return 1
         elif self.op == "or" or self.op == "|" or self.op == "||":
-            if not(isinstance(left, int) & isinstance(right, int)):
+            if not(isinstance(left, int) and isinstance(right, int)):
                 raise SemanticError
-            if (left == 0 & right == 0):
+            if (left == 0 and right == 0):
                 return 0
             return 1
 
@@ -286,7 +286,7 @@ class Parser(tpg.Parser):
     left/a -> arrayIndex/a | var/a;
     arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
     expression/a -> boolOR/a;
-    boolOR/a -> boolAND/a ( ("or"/op) boolAND/b     $a = operation(a, op, b) $ )* ;
+    boolOR/a -> boolAND/a ( ("or"/op | "\|\|"/op | "\|"/op) boolAND/b     $a = operation(a, op, b) $ )* ;
     boolAND/a -> boolNOT/a ( ("and"/op | "&&"/op | "&"/op) boolNOT/b   $a = operation(a, op, b) $ )* ;
     boolNOT/a -> comparison/a | "not"/op expression/b              $a = operation(b, op, b) $ ;
     comparison/a -> boolIN/a ( ("\=\="/op | "<>"/op |"<="/op | "<"/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
