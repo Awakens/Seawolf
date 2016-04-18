@@ -234,6 +234,16 @@ class block(Node):
             list.append(i.evaluate())
         pass
 
+class ifCall(Node):
+    def __init__(self, conidition, value):
+        self.condition = conidition
+        self.value = value
+
+    def evaluate(self):
+        if self.condition.evaluate() != 0:
+            self.value.evaluate()
+        pass
+
 class execute(Node):
     """
     Does evaluate to execute
@@ -255,8 +265,8 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> ((loop/a)                                             $a = execute(a)$)+;
-    loop/a-> statement/a | block/a | conditional/a;
+    START/a -> ((exe/a)                                             $a = execute(a)$)+;
+    exe/a-> statement/a | conditional/a | block/a | conditional/a;
     statement/a -> assign/a | print/a;
     assign/a -> left/a "="/op expression/b "\;"                      $a = assignment(a, op, b) $;
     print/a -> ("print" "\(" expression/a "\)" "\;"   $a = printer(a)$);
@@ -284,12 +294,12 @@ class Parser(tpg.Parser):
        "\]"
         | "\[" "\]"          $a = Array([]) $;
     block/a -> "\{"          $a = block([]) $
-       ( statement/b    $a.value.append(b) $)*
+       ( exe/b    $a.value.append(b) $)*
        "\}"
         | "\{" "\}"          $a = block([]) $;
-    conditional/a -> ifLoop/a | whileLoop/a;
+    conditional/a -> ifCall/a | whileLoop/a;
     whileLoop/a -> "while";
-    ifLoop/a -> "if";
+    ifCall/a -> "if" "\(" expression/a "\)" block/b                $a = ifCall(a, b)$;
     """
 
 
