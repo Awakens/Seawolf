@@ -244,6 +244,18 @@ class ifCall(Node):
             self.value.evaluate()
         pass
 
+class ifElseCall(Node):
+    def __init__(self, ifCall, value):
+        self.ifCall = ifCall
+        self.value = value
+
+    def evaluate(self):
+        if self.ifCall.condition.evaluate() != 0:            #get value of ifCall's condition
+            self.ifCall.evaluate()
+        else:
+            self.value.evaluate()
+        pass
+
 class execute(Node):
     """
     Does evaluate to execute
@@ -297,8 +309,9 @@ class Parser(tpg.Parser):
        ( exe/b    $a.value.append(b) $)*
        "\}"
         | "\{" "\}"          $a = block([]) $;
-    conditional/a -> ifCall/a | whileLoop/a;
+    conditional/a -> ifElseCall/a | ifCall/a | whileLoop/a;
     whileLoop/a -> "while";
+    ifElseCall/a -> ifCall/a "else" block/b                        $a = ifElseCall(a, b)$;
     ifCall/a -> "if" "\(" expression/a "\)" block/b                $a = ifCall(a, b)$;
     """
 
