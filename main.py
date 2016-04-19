@@ -168,8 +168,7 @@ class assignment(Node):
         if isinstance(self.left, Variable):
             dict[self.left.value] = self.right.evaluate()
         elif isinstance(self.left, arrayIndex):
-            (self.left.evaluate())[self.left.index] = self.right.evaluate()
-        print("assignment " , self.left.value, self.op, self.right.evaluate())
+            (self.left.array.evaluate())[self.left.index.evaluate()] = self.right.evaluate()
 
 class Variable(Node):
     """
@@ -256,6 +255,16 @@ class ifElseCall(Node):
             self.value.evaluate()
         pass
 
+class whileLoop(Node):
+    def __init__(self, conidition, value):
+        self.condition = conidition
+        self.value = value
+
+    def evaluate(self):
+        while self.condition.evaluate() != 0:
+            self.value.evaluate()
+        pass
+
 class execute(Node):
     """
     Does evaluate to execute
@@ -277,27 +286,27 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> ((exe/a)                                             $a = execute(a)$)+;
+    START/a -> ((exe/a)                                            $a = execute(a)$)+;
     exe/a-> statement/a | conditional/a | block/a | conditional/a;
     statement/a -> assign/a | print/a;
+    comparison/a -> boolIN/a ( ("\=\="/op | "<>"/op |"<="/op | "<"/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
     assign/a -> left/a "="/op expression/b "\;"                      $a = assignment(a, op, b) $;
     print/a -> ("print" "\(" expression/a "\)" "\;"   $a = printer(a)$);
 
     left/a -> arrayIndex/a | var/a;
-    arrayIndex/a -> array/a ( "\[" expression/b "\]"           $a = arrayIndex(a, b) $ ) ;
+    arrayIndex/a -> var/a "\[" expression/b "\]"                $a = arrayIndex(a, b)$;
     expression/a -> boolOR/a;
     boolOR/a -> boolAND/a ( ("or"/op | "\|\|"/op | "\|"/op) boolAND/b     $a = operation(a, op, b) $ )* ;
     boolAND/a -> boolNOT/a ( ("and"/op | "&&"/op | "&"/op) boolNOT/b   $a = operation(a, op, b) $ )* ;
     boolNOT/a -> comparison/a | "not"/op expression/b              $a = operation(b, op, b) $ ;
-    comparison/a -> boolIN/a ( ("\=\="/op | "<>"/op |"<="/op | "<"/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
     boolIN/a -> xor/a ( "in"/op xor/b                              $a = operation(a, op, b) $ )* ;
     xor/a -> addsub/a ( "xor"/op addsub/b                          $a = operation(a, op, b) $ )* ;
     addsub/a -> floor/a ( ("\+"/op | "\-"/op) floor/b              $a = operation(a, op, b) $ )* ;
     floor/a -> pow/a ( ("//"/op) pow/b                             $a = operation(a, op, b) $ )* ;
     pow/a -> mod/a ( ("\*\*"/op) mod/b                             $a = operation(a, op, b) $ )* ;
     mod/a -> muldiv/a ( ("%"/op) muldiv/b                          $a = operation(a, op, b) $ )* ;
-    muldiv/a -> index/a ( ("\*"/op | "/"/op) index/b       $a = operation(a, op, b) $ )* ;
-    index/a -> parens/a ( "\[" expression/b "\]"               $a = operation(a, '[', b) $ )* ;
+    muldiv/a -> index/a ( ("\*"/op | "/"/op) index/b               $a = operation(a, op, b) $ )* ;
+    index/a -> parens/a ( "\[" expression/b "\]"                   $a = operation(a, '[', b) $ )* ;
     parens/a -> "\(" expression/a "\)" | literal/a;
     literal/a -> array/a | real/a | int/a | str/a | var/a;
     array/a -> "\["          $a = Array([]) $
@@ -310,7 +319,7 @@ class Parser(tpg.Parser):
        "\}"
         | "\{" "\}"          $a = block([]) $;
     conditional/a -> ifElseCall/a | ifCall/a | whileLoop/a;
-    whileLoop/a -> "while";
+    whileLoop/a -> "while" "\(" expression/a "\)" block/b          $a = whileLoop(a, b)$;
     ifElseCall/a -> ifCall/a "else" block/b                        $a = ifElseCall(a, b)$;
     ifCall/a -> "if" "\(" expression/a "\)" block/b                $a = ifCall(a, b)$;
     """
@@ -335,9 +344,6 @@ try:
 
     # Try to get a result.
     result = node.evaluate()
-
-    # Print the representation of the result.
-    print(repr(result))
 
 # If an exception is thrown, print the appropriate error.
 except tpg.Error:
