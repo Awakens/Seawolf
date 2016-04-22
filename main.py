@@ -226,7 +226,6 @@ class printer(Node):
 class block(Node):
     def __init__(self, value):
         self.value = value
-
     def evaluate(self):
         list = []
         for i in self.value:
@@ -286,8 +285,10 @@ class Parser(tpg.Parser):
     token str '\"[^\"]*\"' Str;
     separator space "\s";
 
-    START/a -> ((exe/a)                                            $a = execute(a)$)+;
-    exe/a-> statement/a | conditional/a | block/a | conditional/a;
+    START/a -> execute/a;
+    execute/a -> exe/a                        $a = execute(a)$;
+    exe/a ->                                    $a = block([])$
+        ((statement/b | conditional/b | block/b)  $a.value.append(b)$ )*;
     statement/a -> assign/a | print/a;
     comparison/a -> boolIN/a ( ("\=\="/op | "<>"/op |"<="/op | "<"/op | ">="/op | ">"/op ) boolIN/b    $a = operation(a, op, b) $ )* ;
     assign/a -> left/a "="/op expression/b "\;"                      $a = assignment(a, op, b) $;
